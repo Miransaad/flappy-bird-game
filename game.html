@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Bird - Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="score">Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="gameOverScreen" class="game-over hidden">
+            <h2>Game Over</h2>
+            <p>Your Score: <span id="finalScore">0</span></p>
+            <button id="restartButton">Play Again</button>
+            <div id="leaderboard">
+                <h3>Leaderboard</h3>
+                <ul id="leaderboardList"></ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScore = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const leaderboardList = document.getElementById('leaderboardList');
+
+        // Load leaderboard from localStorage or initialize empty
+        let leaderboard = JSON.parse(localStorage.getItem('flappyLeaderboard')) || [];
+        
+        // Get or set username (one-time at start)
+        let username = sessionStorage.getItem('username');
+        if (!username) {
+            username = prompt('Enter your username:', 'Player') || 'Player';
+            sessionStorage.setItem('username', username);
+        }
+
+        // Set canvas size: shorter and wider
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth * 0.9, 450);  // Max 450 width (wider)
+            canvas.height = Math.min(window.innerHeight * 0.9, 500); // Max 500 height (shorter)
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game variables
+        let bird = { 
+            x: 100,           // Fixed starting position
+            y: canvas.height / 2, 
+            velocity: 0, 
+            gravity: 0.8,     
+            lift: -12         
+        };
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+        const birdSize = 30;      // Approximate size for bird
+        const pipeWidth = 50;     // Fixed 50px width
+        let pipeGap = 150;        // Initial gap
+        let basePipeSpeed = 4;    // Slightly slower speed
+        let frameCount = 0;
+        let pipeFrequency = 90;   // Pipe spawn frequency
+        let wingFrame = 0;        // 0 = wings down, 1 = wings up
+        let flapTimer = 0;        // Timer to reset wings
+
+        // Bird drawing (pixelated cartoon style)
+        function drawBird() {
+            ctx.fillStyle = '#FFFF00'; // Yellow body
+            // Body
+            ctx.fillRect(bird.x - 10, bird.y - 10, 20, 20); // Main square body
+            // Beak
+            ctx.fillStyle = '#FFA500'; // Orange beak
+            ctx.fillRect(bird.x + 10, bird.y - 2, 8, 4); // Small beak
+            // Eye
+            ctx.fillStyle = '#000000'; // Black eye
+            ctx.fillRect(bird.x + 2, bird.y - 6, 4, 4); // Pixel eye
+
+            // Wings (toggle based on wingFrame)
+            ctx.fillStyle = '#FFFF00'; // Yellow wings
+            if (wingFrame === 1) { // Wings up
+                ctx.fillRect(bird.x - 14, bird.y - 14, 8, 8); // Left wing up
+                ctx.fillRect(bird.x + 6, bird.y - 14, 8, 8);  // Right wing up
+            } else { // Wings down
+                ctx.fillRect(bird.x - 14, bird.y + 2, 8, 8);  // Left wing down
+                ctx.fillRect(bird.x + 6, bird.y + 2, 8, 8);   // Right wing down
+            }
+
+            // Update flap animation
+            if (flapTimer > 0) {
+                flapTimer--;
+                if (flapTimer === 0) wingFrame = 0; // Reset to wings down
+            }
+        }
+
+        // Pipe generation and drawing
+        function createPipe() {
+            const pipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 100)) + 50;
+            pipes.push({
+                x: canvas.width,
+                top: pipeHeight,
+                bottom: canvas.height - pipeHeight - pipeGap,
+                scored: false
+            });
+        }
+
+        function drawPipes() {
+            ctx.fillStyle = '#006400'; // Darker green
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
+            });
+        }
+
+        // Game logic
+        function update() {
+            if (gameOver) return;
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            if (frameCount % pipeFrequency === 0) createPipe();
+            const pipeSpeed = basePipeSpeed;
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
+                if (!pipe.scored && pipe.x + pipeWidth < bird.x - birdSize / 2) {
+                    score++;
+                    pipe.scored = true;
+                    basePipeSpeed += 0.2;       // Speed increase per pipe
+                    pipeGap = Math.max(100, pipeGap - 2); // Narrow gap, min 100
+                }
+                if (bird.x + birdSize / 2 > pipe.x && bird.x - birdSize / 2 < pipe.x + pipeWidth) {
+                    if (bird.y - birdSize / 2 < pipe.top || bird.y + birdSize / 2 > canvas.height - pipe.bottom) {
+                        endGame();
+                    }
+                }
+            });
+            pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+
+            if (bird.y > canvas.height || bird.y < 0) endGame();
+
+            frameCount++;
+        }
+
+        // Render
+        function draw() {
+            ctx.fillStyle = '#87CEEB'; // Light baby blue background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawBird();
+            drawPipes();
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        // Update and display leaderboard
+        function updateLeaderboard() {
+            leaderboard.push({ name: username, score: score });
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0, 5);
+            localStorage.setItem('flappyLeaderboard', JSON.stringify(leaderboard));
+
+            leaderboardList.innerHTML = '';
+            leaderboard.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${entry.name}: ${entry.score}`;
+                leaderboardList.appendChild(li);
+            });
+        }
+
+        // Game over handling
+        function endGame() {
+            gameOver = true;
+            gameOverScreen.classList.remove('hidden');
+            finalScore.textContent = score;
+            updateLeaderboard();
+        }
+
+        // Reset game
+        function resetGame() {
+            bird = { 
+                x: 100, 
+                y: canvas.height / 2, 
+                velocity: 0, 
+                gravity: 0.8, 
+                lift: -12 
+            };
+            pipes = [];
+            score = 0;
+            gameOver = false;
+            frameCount = 0;
+            basePipeSpeed = 4;    // Reset to slower speed
+            pipeGap = 150;        // Reset gap
+            pipeFrequency = 90;   // Reset frequency
+            wingFrame = 0;        // Reset wings
+            flapTimer = 0;
+            gameOverScreen.classList.add('hidden');
+            gameLoop();
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver) requestAnimationFrame(gameLoop);
+        }
+
+        // Controls with flap animation
+        function jump() {
+            if (!gameOver) {
+                bird.velocity = bird.lift;
+                wingFrame = 1;        // Wings up on tap
+                flapTimer = 10;       // Reset wings after 10 frames (~0.16s at 60 FPS)
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') jump();
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        restartButton.addEventListener('click', resetGame);
+        restartButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            resetGame();
+        });
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
