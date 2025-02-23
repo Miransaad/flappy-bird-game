@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Bird - Game</title>
+    <title>Flappy Bird</title>
 </head>
 <body>
     <div class="game-container">
-        <div id="score">Score: 0</div>
+        <div id="score" style="position: absolute; top: 10px; left: 10px; font-family: Arial; font-size: 20px;">Score: 0</div>
         <canvas id="gameCanvas"></canvas>
-        <div id="gameOverScreen" class="game-over hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 255, 255, 0.8); padding: 20px;">
+        <div id="gameOverScreen" class="game-over hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 255, 255, 0.8); padding: 20px; font-family: Arial;">
             <h2>Game Over</h2>
             <p>Your Score: <span id="finalScore">0</span></p>
-            <button id="restartButton">Play Again</button>
+            <button id="restartButton" style="padding: 10px 20px;">Play Again</button>
             <div id="leaderboard">
                 <h3>Leaderboard</h3>
-                <ul id="leaderboardList"></ul>
+                <ul id="leaderboardList" style="list-style: none; padding: 0;"></ul>
             </div>
         </div>
     </div>
@@ -38,52 +38,54 @@
             sessionStorage.setItem('username', username);
         }
 
-        // Set canvas size: shorter and wider
+        // Set canvas size to match original Flappy Bird
         function resizeCanvas() {
-            canvas.width = Math.min(window.innerWidth * 0.9, 450);  // Max 450 width
-            canvas.height = Math.min(window.innerHeight * 0.9, 500); // Max 500 height
+            canvas.width = Math.min(window.innerWidth * 0.9, 288);  // Original width: 288
+            canvas.height = Math.min(window.innerHeight * 0.9, 512); // Original height: 512
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Game variables
+        // Game variables (tuned to original)
         let bird = { 
-            x: 100,           
+            x: 50,            // Closer to left edge, like original
             y: canvas.height / 2, 
             velocity: 0, 
-            gravity: 0.6,     // Reduced for smoother fall
-            lift: -10         // Reduced for gentler jump
+            gravity: 0.25,    // Original-like gravity
+            lift: -6.5,       // Original-like lift
+            maxVelocity: 8    // Cap falling speed
         };
         let pipes = [];
         let score = 0;
         let gameOver = false;
-        const birdSize = 30;      
-        const pipeWidth = 50;     
-        let pipeGap = 150;        
-        let basePipeSpeed = 2.5;  // Slower initial speed
+        const birdWidth = 34;     // Original bird size
+        const birdHeight = 24;    
+        const pipeWidth = 52;     // Original pipe width
+        let pipeGap = 100;        // Original gap size
+        let basePipeSpeed = 2;    // Original pipe speed
         let frameCount = 0;
-        let pipeFrequency = 120;  // Slower pipe spawn rate
+        let pipeFrequency = 75;   // ~2.5s at 30 FPS, close to original
         let wingFrame = 0;        
         let flapTimer = 0;        
-        const targetFPS = 30;     // Cap at 30 FPS
+        const targetFPS = 30;     
         const frameInterval = 1000 / targetFPS;
 
-        // Bird drawing (pixelated cartoon style)
+        // Bird drawing (pixelated, original size)
         function drawBird() {
             ctx.fillStyle = '#FFFF00'; // Yellow body
-            ctx.fillRect(bird.x - 10, bird.y - 10, 20, 20); 
+            ctx.fillRect(bird.x - birdWidth / 2, bird.y - birdHeight / 2, birdWidth, birdHeight); 
             ctx.fillStyle = '#FFA500'; // Orange beak
-            ctx.fillRect(bird.x + 10, bird.y - 2, 8, 4); 
+            ctx.fillRect(bird.x + birdWidth / 2 - 8, bird.y - 2, 8, 4); 
             ctx.fillStyle = '#000000'; // Black eye
             ctx.fillRect(bird.x + 2, bird.y - 6, 4, 4); 
 
             ctx.fillStyle = '#FFFF00'; // Yellow wings
             if (wingFrame === 1) { 
-                ctx.fillRect(bird.x - 14, bird.y - 14, 8, 8); 
-                ctx.fillRect(bird.x + 6, bird.y - 14, 8, 8);  
+                ctx.fillRect(bird.x - birdWidth / 2 - 8, bird.y - birdHeight / 2 - 4, 8, 8); 
+                ctx.fillRect(bird.x + birdWidth / 2 - 8, bird.y - birdHeight / 2 - 4, 8, 8); 
             } else { 
-                ctx.fillRect(bird.x - 14, bird.y + 2, 8, 8);  
-                ctx.fillRect(bird.x + 6, bird.y + 2, 8, 8);   
+                ctx.fillRect(bird.x - birdWidth / 2 - 8, bird.y + 4, 8, 8); 
+                ctx.fillRect(bird.x + birdWidth / 2 - 8, bird.y + 4, 8, 8); 
             }
 
             if (flapTimer > 0) {
@@ -116,20 +118,19 @@
             if (gameOver) return;
 
             bird.velocity += bird.gravity;
+            bird.velocity = Math.min(bird.velocity, bird.maxVelocity); // Cap falling speed
             bird.y += bird.velocity;
 
             if (frameCount % pipeFrequency === 0) createPipe();
             const pipeSpeed = basePipeSpeed;
             pipes.forEach(pipe => {
                 pipe.x -= pipeSpeed;
-                if (!pipe.scored && pipe.x + pipeWidth < bird.x) { // Simplified collision
+                if (!pipe.scored && pipe.x + pipeWidth < bird.x) {
                     score++;
                     pipe.scored = true;
-                    basePipeSpeed += 0.1;       // Slower speed increase
-                    pipeGap = Math.max(100, pipeGap - 2);
                 }
-                if (bird.x + birdSize / 2 > pipe.x && bird.x - birdSize / 2 < pipe.x + pipeWidth) {
-                    if (bird.y - birdSize / 2 < pipe.top || bird.y + birdSize / 2 > canvas.height - pipe.bottom) {
+                if (bird.x + birdWidth / 2 > pipe.x && bird.x - birdWidth / 2 < pipe.x + pipeWidth) {
+                    if (bird.y - birdHeight / 2 < pipe.top || bird.y + birdHeight / 2 > canvas.height - pipe.bottom) {
                         endGame();
                     }
                 }
@@ -176,25 +177,26 @@
         // Reset game
         function resetGame() {
             bird = { 
-                x: 100, 
+                x: 50, 
                 y: canvas.height / 2, 
                 velocity: 0, 
-                gravity: 0.6, 
-                lift: -10 
+                gravity: 0.25, 
+                lift: -6.5,
+                maxVelocity: 8
             };
             pipes = [];
             score = 0;
             gameOver = false;
             frameCount = 0;
-            basePipeSpeed = 2.5;  
-            pipeGap = 150;        
-            pipeFrequency = 120;  
-            wingFrame = 0;        
+            basePipeSpeed = 2;  
+            pipeGap = 100;      
+            pipeFrequency = 75; 
+            wingFrame = 0;      
             flapTimer = 0;
             gameOverScreen.classList.add('hidden');
         }
 
-        // Controlled game loop for ~30 FPS
+        // Controlled game loop for 30 FPS
         let lastTime = 0;
         function gameLoop(timestamp) {
             if (!lastTime) lastTime = timestamp;
