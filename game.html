@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Bird</title>
 </head>
-<body>
-    <div class="game-container">
-        <div id="score" style="position: absolute; top: 10px; left: 10px; font-family: Arial; font-size: 20px;">Score: 0</div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="gameOverScreen" class="game-over hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 255, 255, 0.8); padding: 20px; font-family: Arial;">
-            <h2>Game Over</h2>
-            <p>Your Score: <span id="finalScore">0</span></p>
-            <button id="restartButton" style="padding: 10px 20px;">Play Again</button>
-            <div id="leaderboard">
-                <h3>Leaderboard</h3>
+<body style="margin: 0; padding: 0; overflow: hidden; background: #87CEEB;">
+    <div class="game-container" style="position: relative; width: 100%; height: 100%;">
+        <div id="score" style="position: absolute; top: 10px; left: 10px; font-family: Arial; font-size: 24px; color: #FFFFFF; text-shadow: 1px 1px 2px #000000;">Score: 0</div>
+        <canvas id="gameCanvas" style="display: block;"></canvas>
+        <div id="gameOverScreen" class="game-over hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 10px; font-family: Arial;">
+            <h2 style="margin: 10px 0;">Game Over</h2>
+            <p style="margin: 10px 0;">Your Score: <span id="finalScore">0</span></p>
+            <button id="restartButton" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Play Again</button>
+            <div id="leaderboard" style="margin-top: 20px;">
+                <h3 style="margin: 10px 0;">Leaderboard</h3>
                 <ul id="leaderboardList" style="list-style: none; padding: 0;"></ul>
             </div>
         </div>
@@ -40,20 +40,20 @@
 
         // Set canvas size to match original Flappy Bird
         function resizeCanvas() {
-            canvas.width = Math.min(window.innerWidth * 0.9, 288);  // Original width: 288
-            canvas.height = Math.min(window.innerHeight * 0.9, 512); // Original height: 512
+            canvas.width = Math.min(window.innerWidth, 288);  // Original width: 288
+            canvas.height = Math.min(window.innerHeight, 512); // Original height: 512
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Game variables (slower and shorter spacing)
+        // Game variables (tuned for slow, balanced play)
         let bird = { 
-            x: 50,            
+            x: 60,            // Slightly further from edge for visibility
             y: canvas.height / 2, 
             velocity: 0, 
-            gravity: 0.25,    // Original-like gravity
-            lift: -6.5,       // Original-like lift
-            maxVelocity: 5    // Slower max fall speed
+            gravity: 0.2,     // Slower gravity for floaty feel
+            lift: -6,         // Gentle lift
+            maxVelocity: 4    // Very slow max fall
         };
         let pipes = [];
         let score = 0;
@@ -61,10 +61,10 @@
         const birdWidth = 34;     
         const birdHeight = 24;    
         const pipeWidth = 52;     
-        let pipeGap = 100;        
-        let basePipeSpeed = 1;    // Much slower pipe speed
+        const pipeGap = 100;      // Fixed gap, original size
+        let basePipeSpeed = 0.8;  // Very slow pipe speed
         let frameCount = 0;
-        let pipeFrequency = 45;   // Shorter spacing (~1.5s at 30 FPS)
+        let pipeFrequency = 90;   // ~3s at 30 FPS, predictable spacing
         let wingFrame = 0;        
         let flapTimer = 0;        
         const targetFPS = 30;     
@@ -96,9 +96,11 @@
 
         // Pipe generation and drawing
         function createPipe() {
-            const pipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 100)) + 50;
+            const minHeight = 50;
+            const maxHeight = canvas.height - pipeGap - 50;
+            const pipeHeight = minHeight + Math.random() * (maxHeight - minHeight);
             pipes.push({
-                x: canvas.width,
+                x: canvas.width + pipeWidth, // Start just off-screen
                 top: pipeHeight,
                 bottom: canvas.height - pipeHeight - pipeGap,
                 scored: false
@@ -135,16 +137,16 @@
                     }
                 }
             });
-            pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+            pipes = pipes.filter(pipe => pipe.x + pipeWidth > -pipeWidth); // Keep pipes just off-screen
 
-            if (bird.y > canvas.height || bird.y < 0) endGame();
+            if (bird.y + birdHeight / 2 > canvas.height || bird.y - birdHeight / 2 < 0) endGame();
 
             frameCount++;
         }
 
         // Render
         function draw() {
-            ctx.fillStyle = '#87CEEB'; // Light baby blue background
+            ctx.fillStyle = '#87CEEB'; // Light baby blue background (moved to body)
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawBird();
             drawPipes();
@@ -177,20 +179,18 @@
         // Reset game
         function resetGame() {
             bird = { 
-                x: 50, 
+                x: 60, 
                 y: canvas.height / 2, 
                 velocity: 0, 
-                gravity: 0.25, 
-                lift: -6.5,
-                maxVelocity: 5
+                gravity: 0.2, 
+                lift: -6,
+                maxVelocity: 4
             };
             pipes = [];
             score = 0;
             gameOver = false;
             frameCount = 0;
-            basePipeSpeed = 1;  
-            pipeGap = 100;      
-            pipeFrequency = 45; 
+            basePipeSpeed = 0.8;  
             wingFrame = 0;      
             flapTimer = 0;
             gameOverScreen.classList.add('hidden');
@@ -216,7 +216,7 @@
             if (!gameOver) {
                 bird.velocity = bird.lift;
                 wingFrame = 1;        
-                flapTimer = 10;       
+                flapTimer = 15;       // Slightly longer flap for visibility
             }
         }
 
