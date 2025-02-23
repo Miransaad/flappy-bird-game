@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Bird - Game</title>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
         <div id="score">Score: 0</div>
         <canvas id="gameCanvas"></canvas>
-        <div id="gameOverScreen" class="game-over hidden">
+        <div id="gameOverScreen" class="game-over hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 255, 255, 0.8); padding: 20px;">
             <h2>Game Over</h2>
             <p>Your Score: <span id="finalScore">0</span></p>
             <button id="restartButton">Play Again</button>
@@ -41,58 +40,55 @@
 
         // Set canvas size: shorter and wider
         function resizeCanvas() {
-            canvas.width = Math.min(window.innerWidth * 0.9, 450);  // Max 450 width (wider)
-            canvas.height = Math.min(window.innerHeight * 0.9, 500); // Max 500 height (shorter)
+            canvas.width = Math.min(window.innerWidth * 0.9, 450);  // Max 450 width
+            canvas.height = Math.min(window.innerHeight * 0.9, 500); // Max 500 height
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
         // Game variables
         let bird = { 
-            x: 100,           // Fixed starting position
+            x: 100,           
             y: canvas.height / 2, 
             velocity: 0, 
-            gravity: 0.8,     
-            lift: -12         
+            gravity: 0.6,     // Reduced for smoother fall
+            lift: -10         // Reduced for gentler jump
         };
         let pipes = [];
         let score = 0;
         let gameOver = false;
-        const birdSize = 30;      // Approximate size for bird
-        const pipeWidth = 50;     // Fixed 50px width
-        let pipeGap = 150;        // Initial gap
-        let basePipeSpeed = 4;    // Slightly slower speed
+        const birdSize = 30;      
+        const pipeWidth = 50;     
+        let pipeGap = 150;        
+        let basePipeSpeed = 2.5;  // Slower initial speed
         let frameCount = 0;
-        let pipeFrequency = 90;   // Pipe spawn frequency
-        let wingFrame = 0;        // 0 = wings down, 1 = wings up
-        let flapTimer = 0;        // Timer to reset wings
+        let pipeFrequency = 120;  // Slower pipe spawn rate
+        let wingFrame = 0;        
+        let flapTimer = 0;        
+        const targetFPS = 30;     // Cap at 30 FPS
+        const frameInterval = 1000 / targetFPS;
 
         // Bird drawing (pixelated cartoon style)
         function drawBird() {
             ctx.fillStyle = '#FFFF00'; // Yellow body
-            // Body
-            ctx.fillRect(bird.x - 10, bird.y - 10, 20, 20); // Main square body
-            // Beak
+            ctx.fillRect(bird.x - 10, bird.y - 10, 20, 20); 
             ctx.fillStyle = '#FFA500'; // Orange beak
-            ctx.fillRect(bird.x + 10, bird.y - 2, 8, 4); // Small beak
-            // Eye
+            ctx.fillRect(bird.x + 10, bird.y - 2, 8, 4); 
             ctx.fillStyle = '#000000'; // Black eye
-            ctx.fillRect(bird.x + 2, bird.y - 6, 4, 4); // Pixel eye
+            ctx.fillRect(bird.x + 2, bird.y - 6, 4, 4); 
 
-            // Wings (toggle based on wingFrame)
             ctx.fillStyle = '#FFFF00'; // Yellow wings
-            if (wingFrame === 1) { // Wings up
-                ctx.fillRect(bird.x - 14, bird.y - 14, 8, 8); // Left wing up
-                ctx.fillRect(bird.x + 6, bird.y - 14, 8, 8);  // Right wing up
-            } else { // Wings down
-                ctx.fillRect(bird.x - 14, bird.y + 2, 8, 8);  // Left wing down
-                ctx.fillRect(bird.x + 6, bird.y + 2, 8, 8);   // Right wing down
+            if (wingFrame === 1) { 
+                ctx.fillRect(bird.x - 14, bird.y - 14, 8, 8); 
+                ctx.fillRect(bird.x + 6, bird.y - 14, 8, 8);  
+            } else { 
+                ctx.fillRect(bird.x - 14, bird.y + 2, 8, 8);  
+                ctx.fillRect(bird.x + 6, bird.y + 2, 8, 8);   
             }
 
-            // Update flap animation
             if (flapTimer > 0) {
                 flapTimer--;
-                if (flapTimer === 0) wingFrame = 0; // Reset to wings down
+                if (flapTimer === 0) wingFrame = 0;
             }
         }
 
@@ -126,11 +122,11 @@
             const pipeSpeed = basePipeSpeed;
             pipes.forEach(pipe => {
                 pipe.x -= pipeSpeed;
-                if (!pipe.scored && pipe.x + pipeWidth < bird.x - birdSize / 2) {
+                if (!pipe.scored && pipe.x + pipeWidth < bird.x) { // Simplified collision
                     score++;
                     pipe.scored = true;
-                    basePipeSpeed += 0.2;       // Speed increase per pipe
-                    pipeGap = Math.max(100, pipeGap - 2); // Narrow gap, min 100
+                    basePipeSpeed += 0.1;       // Slower speed increase
+                    pipeGap = Math.max(100, pipeGap - 2);
                 }
                 if (bird.x + birdSize / 2 > pipe.x && bird.x - birdSize / 2 < pipe.x + pipeWidth) {
                     if (bird.y - birdSize / 2 < pipe.top || bird.y + birdSize / 2 > canvas.height - pipe.bottom) {
@@ -183,26 +179,33 @@
                 x: 100, 
                 y: canvas.height / 2, 
                 velocity: 0, 
-                gravity: 0.8, 
-                lift: -12 
+                gravity: 0.6, 
+                lift: -10 
             };
             pipes = [];
             score = 0;
             gameOver = false;
             frameCount = 0;
-            basePipeSpeed = 4;    // Reset to slower speed
-            pipeGap = 150;        // Reset gap
-            pipeFrequency = 90;   // Reset frequency
-            wingFrame = 0;        // Reset wings
+            basePipeSpeed = 2.5;  
+            pipeGap = 150;        
+            pipeFrequency = 120;  
+            wingFrame = 0;        
             flapTimer = 0;
             gameOverScreen.classList.add('hidden');
-            gameLoop();
         }
 
-        // Game loop
-        function gameLoop() {
-            update();
-            draw();
+        // Controlled game loop for ~30 FPS
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const elapsed = timestamp - lastTime;
+
+            if (elapsed > frameInterval) {
+                update();
+                draw();
+                lastTime = timestamp - (elapsed % frameInterval);
+            }
+
             if (!gameOver) requestAnimationFrame(gameLoop);
         }
 
@@ -210,8 +213,8 @@
         function jump() {
             if (!gameOver) {
                 bird.velocity = bird.lift;
-                wingFrame = 1;        // Wings up on tap
-                flapTimer = 10;       // Reset wings after 10 frames (~0.16s at 60 FPS)
+                wingFrame = 1;        
+                flapTimer = 10;       
             }
         }
 
@@ -231,7 +234,7 @@
         });
 
         // Start game
-        gameLoop();
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
