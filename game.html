@@ -46,25 +46,25 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Game variables (tuned to original)
+        // Game variables (slower and shorter spacing)
         let bird = { 
-            x: 50,            // Closer to left edge, like original
+            x: 50,            
             y: canvas.height / 2, 
             velocity: 0, 
             gravity: 0.25,    // Original-like gravity
             lift: -6.5,       // Original-like lift
-            maxVelocity: 8    // Cap falling speed
+            maxVelocity: 5    // Slower max fall speed
         };
         let pipes = [];
         let score = 0;
         let gameOver = false;
-        const birdWidth = 34;     // Original bird size
+        const birdWidth = 34;     
         const birdHeight = 24;    
-        const pipeWidth = 52;     // Original pipe width
-        let pipeGap = 100;        // Original gap size
-        let basePipeSpeed = 2;    // Original pipe speed
+        const pipeWidth = 52;     
+        let pipeGap = 100;        
+        let basePipeSpeed = 1;    // Much slower pipe speed
         let frameCount = 0;
-        let pipeFrequency = 75;   // ~2.5s at 30 FPS, close to original
+        let pipeFrequency = 45;   // Shorter spacing (~1.5s at 30 FPS)
         let wingFrame = 0;        
         let flapTimer = 0;        
         const targetFPS = 30;     
@@ -118,7 +118,7 @@
             if (gameOver) return;
 
             bird.velocity += bird.gravity;
-            bird.velocity = Math.min(bird.velocity, bird.maxVelocity); // Cap falling speed
+            bird.velocity = Math.min(bird.velocity, bird.maxVelocity); 
             bird.y += bird.velocity;
 
             if (frameCount % pipeFrequency === 0) createPipe();
@@ -182,15 +182,15 @@
                 velocity: 0, 
                 gravity: 0.25, 
                 lift: -6.5,
-                maxVelocity: 8
+                maxVelocity: 5
             };
             pipes = [];
             score = 0;
             gameOver = false;
             frameCount = 0;
-            basePipeSpeed = 2;  
+            basePipeSpeed = 1;  
             pipeGap = 100;      
-            pipeFrequency = 75; 
+            pipeFrequency = 45; 
             wingFrame = 0;      
             flapTimer = 0;
             gameOverScreen.classList.add('hidden');
