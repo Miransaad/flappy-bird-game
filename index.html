@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Bird Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="start-screen">
+        <h1>Flappy Bird</h1>
+        <input 
+            type="text" 
+            id="username" 
+            placeholder="Enter your username" 
+            maxlength="15" 
+            autocapitalize="off" 
+            autocomplete="off"
+        >
+        <button onclick="startGame()">Start Game</button>
+    </div>
+    <script>
+        // Focus on input field on page load for mobile users
+        window.onload = function() {
+            const usernameInput = document.getElementById('username');
+            usernameInput.focus(); // Automatically bring up keyboard on mobile
+        };
+
+        function startGame() {
+            const username = document.getElementById('username').value.trim();
+            if (username === '') {
+                alert('Please enter a username!');
+                return;
+            }
+            sessionStorage.setItem('username', username);
+            window.location.href = "game.html";
+        }
+    </script>
+</body>
+</html>
